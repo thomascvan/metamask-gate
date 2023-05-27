@@ -1,13 +1,5 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
-
-import React, {useEffect, useState} from 'react';
-import type {Node} from 'react';
+import React, { useEffect, useState } from 'react';
+import type { Node } from 'react';
 import {
   Button,
   Linking,
@@ -17,15 +9,16 @@ import {
   Text,
   useColorScheme,
 } from 'react-native';
-import {Colors} from 'react-native/Libraries/NewAppScreen';
+import { Colors } from 'react-native/Libraries/NewAppScreen';
 import BackgroundTimer from 'react-native-background-timer';
 
 import MetaMaskSDK from '@metamask/sdk';
 
-import {ethers} from 'ethers';
+import { ethers } from 'ethers';
 
+// Create an instance of MetaMask SDK
 const sdk = new MetaMaskSDK({
-  openDeeplink: link => {
+  openDeeplink: (link) => {
     Linking.openURL(link);
   },
   timer: BackgroundTimer,
@@ -35,8 +28,10 @@ const sdk = new MetaMaskSDK({
   },
 });
 
+// Get the Ethereum provider from MetaMask SDK
 const ethereum = sdk.getProvider();
 
+// Create a Web3 provider using the Ethereum provider
 const provider = new ethers.providers.Web3Provider(ethereum);
 
 const App: () => Node = () => {
@@ -56,6 +51,7 @@ const App: () => Node = () => {
     fontSize: 16,
   };
 
+  // Function to fetch the account balance
   const getBalance = async () => {
     if (!ethereum.selectedAddress) {
       return;
@@ -65,29 +61,37 @@ const App: () => Node = () => {
   };
 
   useEffect(() => {
-    ethereum.on('chainChanged', chain => {
+    // Listen for changes in the connected chain
+    ethereum.on('chainChanged', (chain) => {
       console.log(chain);
       setChain(chain);
     });
-    ethereum.on('accountsChanged', accounts => {
+
+    // Listen for changes in the connected accounts
+    ethereum.on('accountsChanged', (accounts) => {
       console.log(accounts);
       setAccount(accounts?.[0]);
 
+      // Update the balance when the connected account changes
       getBalance();
     });
   }, []);
 
+  // Function to connect to MetaMask
   const connect = async () => {
     try {
-      const result = await ethereum.request({method: 'eth_requestAccounts'});
+      const result = await ethereum.request({ method: 'eth_requestAccounts' });
       console.log('RESULT', result?.[0]);
       setAccount(result?.[0]);
+
+      // Update the balance when connected successfully
       getBalance();
     } catch (e) {
       console.log('ERROR', e);
     }
   };
 
+  // Example request to add a custom chain to MetaMask
   const exampleRequest = async () => {
     try {
       const result = await ethereum.request({
@@ -97,7 +101,7 @@ const App: () => Node = () => {
             chainId: '0x89',
             chainName: 'Polygon',
             blockExplorerUrls: ['https://polygonscan.com'],
-            nativeCurrency: {symbol: 'MATIC', decimals: 18},
+            nativeCurrency: { symbol: 'MATIC', decimals: 18 },
             rpcUrls: ['https://polygon-rpc.com/'],
           },
         ],
@@ -109,7 +113,9 @@ const App: () => Node = () => {
     }
   };
 
+  // Function to sign a message using MetaMask
   const sign = async () => {
+    // Define the message parameters
     const msgParams = JSON.stringify({
       domain: {
         // Defining the chain aka Rinkeby testnet or Ethereum Main Net
@@ -118,18 +124,12 @@ const App: () => Node = () => {
         name: 'Ether Mail',
         // If name isn't enough add verifying contract to make sure you are establishing contracts with the proper entity
         verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
-        // Just let's you know the latest version. Definitely make sure the field name is correct.
-        version: '1',
+        version: '1', // Latest version of the message schema
       },
 
       // Defining the message signing data content.
       message: {
-        /*
-         - Anything you want. Just a JSON Blob that encodes the data you want to send
-         - No required fields
-         - This is DApp Specific
-         - Be as explicit as possible when building out the message schema.
-        */
+        // Define the message content
         contents: 'Hello, Bob!',
         attachedMoneyInEth: 4.2,
         from: {
@@ -150,49 +150,48 @@ const App: () => Node = () => {
           },
         ],
       },
-      // Refers to the keys of the *types* object below.
-      primaryType: 'Mail',
+      primaryType: 'Mail', // Refers to the keys of the 'types' object below
       types: {
         // TODO: Clarify if EIP712Domain refers to the domain the contract is hosted on
         EIP712Domain: [
-          {name: 'name', type: 'string'},
-          {name: 'version', type: 'string'},
-          {name: 'chainId', type: 'uint256'},
-          {name: 'verifyingContract', type: 'address'},
+          { name: 'name', type: 'string' },
+          { name: 'version', type: 'string' },
+          { name: 'chainId', type: 'uint256' },
+          { name: 'verifyingContract', type: 'address' },
         ],
         // Not an EIP712Domain definition
         Group: [
-          {name: 'name', type: 'string'},
-          {name: 'members', type: 'Person[]'},
+          { name: 'name', type: 'string' },
+          { name: 'members', type: 'Person[]' },
         ],
         // Refer to PrimaryType
         Mail: [
-          {name: 'from', type: 'Person'},
-          {name: 'to', type: 'Person[]'},
-          {name: 'contents', type: 'string'},
+          { name: 'from', type: 'Person' },
+          { name: 'to', type: 'Person[]' },
+          { name: 'contents', type: 'string' },
         ],
         // Not an EIP712Domain definition
         Person: [
-          {name: 'name', type: 'string'},
-          {name: 'wallets', type: 'address[]'},
+          { name: 'name', type: 'string' },
+          { name: 'wallets', type: 'address[]' },
         ],
       },
     });
 
-    var from = ethereum.selectedAddress;
+    const from = ethereum.selectedAddress;
+    const params = [from, msgParams];
+    const method = 'eth_signTypedData_v4';
 
-    var params = [from, msgParams];
-    var method = 'eth_signTypedData_v4';
-
-    const resp = await ethereum.request({method, params});
+    const resp = await ethereum.request({ method, params });
     setResponse(resp);
   };
 
+  // Function to send a transaction using MetaMask
   const sendTransaction = async () => {
     const to = '0x0000000000000000000000000000000000000000';
     const transactionParameters = {
       to, // Required except during contract publications.
-      from: ethereum.selectedAddress, // must match user's active address.
+      from: ethereum.selectedAddress, // Must match the user's active address.
       value: '0x5AF3107A4000', // Only required to send ether to the recipient from the initiating external account.
     };
 
@@ -215,7 +214,8 @@ const App: () => Node = () => {
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
+        style={backgroundStyle}
+      >
         <Button title={account ? 'Connected' : 'Connect'} onPress={connect} />
         <Button title="Sign" onPress={sign} />
         <Button title="Send transaction" onPress={sendTransaction} />
